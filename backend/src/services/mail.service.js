@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
-
+//this transporter works between http and smtp
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
