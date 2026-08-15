@@ -4,7 +4,7 @@ import { sendEmail } from "../services/mail.service.js";
 import dotenv from "dotenv";
 dotenv.config();
 import cookie from "cookie-parser";
-
+import redis from "../config/config.js"
 /**
  * @Route:/api/auth/register
  * @Method:POST
@@ -208,8 +208,14 @@ export async function verifyEmailController(req,res){
         })
 
         res.status(200).json({
-            success:true,
-            message:"Login successfully",
+            success: true,
+            message: "Login successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+            }
         })
     }
     catch(err)
@@ -257,12 +263,19 @@ export async function getMecontroller(req,res){
  */
 export async function resendVerificationEmailController(req,res){
     try{
-        const {email}=req.body;
+        const {email,password}=req.body;
         if(!email){
             return res.status(400).json({
                 message:"Email is required",
                 success:false,
                 err:"Email is required",
+            })
+        }
+        if(!password){
+            return res.status(400).json({
+                message:"Password is required",
+                success:false,
+                err:"Password is required",
             })
         }
         const user=await userModel.findOne({email});
@@ -271,6 +284,14 @@ export async function resendVerificationEmailController(req,res){
                 message:"User dosen't exist",
                 success:false,
                 err:"User dosen't exist",
+            })
+        }
+        const isValidPassword=await user.comparePassword(password);
+        if(!isValidPassword){
+            return res.status(400).json({
+                message:"Invalid Credentials",
+                success:false,
+                err:"Invalid Credentials",
             })
         }
         if(user.verified){
@@ -330,6 +351,43 @@ export async function resendVerificationEmailController(req,res){
     }
     catch (err){
         console.log("Error in resending verification email",err);
+        res.status(500).json({message:"Internal server error"});
+    }
+}
+/**
+ * @Route:/api/auth/logout
+ * @Method:GET
+ * @Description:logout a user
+ * @headers:{"Authorization":"Bearer <token>"}
+ * @returns 
+ */
+export async function logoutController(req,res){
+    try{
+        const token=req.cookies.token;
+        res.clearCookie("token");
+        if(!token){
+            return res.status(400).json({
+                message:"No token found",
+                success:false,
+                err:"No token found",
+            })
+        }
+        const isBlackListed=await redis.get(token)
+        if(isBlackListed){
+            return res.status(400).json({
+                message:"Invalid User",
+                success:false,
+                err:"Invalid User",
+            })
+        }
+        //token ko blacklist me daaldo
+        await redis.set(token, Date.now().toString());
+        return res.status(200).json({
+            message: "User logged out successfully"
+        })
+    }
+    catch(err){
+        console.log("Error in logout",err);
         res.status(500).json({message:"Internal server error"});
     }
 }

@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* ── Custom theme tokens ── */
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', Arial, Helvetica, sans-serif;
+  --font-heading: 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+  --color-surface: #0a0a0a;
+  --color-surface-100: #121212;
+  --color-surface-200: #1a1a1a;
+  --color-surface-300: #222222;
+  --color-silver: #c0c0c0;
+  --color-silver-light: #e8e8e8;
+  --color-silver-muted: #a8a8a8;
+  --color-silver-dim: #6b6b6b;
+}
+
+/* ── Base ── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #0a0a0a;
+  color: #c0c0c0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  cursor: none;
+}
+
+/* ── Noise texture overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── 3D Embossed headings ── */
+.heading-3d {
+  font-family: var(--font-heading);
+  color: #e8e8e8;
+  text-shadow:
+    0 1px 0 #cfcfcf,
+    0 2px 0 #b8b8b8,
+    0 3px 0 #a0a0a0,
+    0 4px 0 #909090,
+    0 5px 6px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(255, 255, 255, 0.04);
+}
+
+/* ── Eyebrow label ── */
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #6b6b6b;
+  margin-bottom: 16px;
+}
+
+/* ── CTA button ── */
+.cta-btn {
+  display: inline-block;
+  padding: 14px 40px;
+  border: 1px solid rgba(192, 192, 192, 0.3);
+  border-radius: 10px;
+  color: #e8e8e8;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: none;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.cta-btn:hover {
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.12),
+    0 0 60px rgba(255, 255, 255, 0.05);
+  border-color: rgba(192, 192, 192, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+/* ── Glassmorphic pill ── */
+.glass-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(192, 192, 192, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 13px;
+  color: #a8a8a8;
+  transition: all 0.3s ease;
+}
+
+.glass-pill:hover {
+  border-color: rgba(192, 192, 192, 0.3);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.06);
+}
+
+.glass-pill svg {
+  width: 18px;
+  height: 18px;
+  stroke: #9a9a9a;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+/* ── Glassmorphic card ── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(192, 192, 192, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 40px 32px;
+  text-align: center;
+  cursor: none;
+  will-change: transform;
+}
+
+.glass-card:hover {
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(255, 255, 255, 0.04);
+}
+
+.glass-card .card-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 20px;
+  stroke: #9a9a9a;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.glass-card h3 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: #e8e8e8;
+  margin-bottom: 10px;
+  text-shadow:
+    0 1px 0 #b8b8b8,
+    0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card p {
+  font-size: 14px;
+  color: #a8a8a8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.glass-card .cta-btn {
+  padding: 10px 28px;
+  font-size: 13px;
+}
+
+/* ── Footer ── */
+.landing-footer {
+  border-top: 1px solid rgba(192, 192, 192, 0.06);
+}
+
+/* ── Restore cursor on mobile / touch ── */
+@media (pointer: coarse) {
+  body { cursor: auto; }
+  .cta-btn { cursor: pointer; }
+  .glass-card { cursor: pointer; }
+}

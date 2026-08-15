@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perplexity — One Assistant. Every Answer.</title>
+  <meta name="description" content="Perplexity is your all-in-one AI assistant — real-time weather, live web search, email, forex, and reminders in one conversation." />
+
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins="></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["'Segoe UI'", 'Arial', 'Helvetica', 'sans-serif'] },
+          colors: {
+            surface: { DEFAULT: '#0a0a0a', 100: '#121212', 200: '#1a1a1a', 300: '#222222' },
+            silver: { DEFAULT: '#c0c0c0', light: '#e8e8e8', muted: '#a8a8a8', dim: '#6b6b6b' },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* ── Base ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      background: #0a0a0a;
+      color: #c0c0c0;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Three.js canvas ── */
+    #three-canvas {
+      position: fixed; inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Content sits above canvas ── */
+    .content-layer { position: relative; z-index: 1; }
+
+    /* ── 3D embossed headings ── */
+    .heading-3d {
+      color: #e8e8e8;
+      text-shadow:
+        0 1px 0 #cfcfcf,
+        0 2px 0 #b8b8b8,
+        0 3px 0 #a0a0a0,
+        0 4px 0 #909090,
+        0 5px 6px rgba(0,0,0,0.6),
+        0 0 30px rgba(255,255,255,0.04);
+    }
+
+    /* ── Eyebrow ── */
+    .eyebrow {
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #6b6b6b;
+      margin-bottom: 16px;
+    }
+
+    /* ── CTA button ── */
+    .cta-btn {
+      display: inline-block;
+      padding: 14px 40px;
+      border: 1px solid rgba(192,192,192,0.3);
+      border-radius: 10px;
+      color: #e8e8e8;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+      text-decoration: none;
+    }
+    .cta-btn:hover {
+      box-shadow: 0 0 20px rgba(255,255,255,0.12), 0 0 60px rgba(255,255,255,0.05);
+      border-color: rgba(192,192,192,0.6);
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-2px);
+    }
+
+    /* ── Glassmorphic pill ── */
+    .glass-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(192,192,192,0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 13px;
+      color: #a8a8a8;
+      transition: all 0.3s ease;
+    }
+    .glass-pill:hover {
+      border-color: rgba(192,192,192,0.3);
+      box-shadow: 0 0 14px rgba(255,255,255,0.06);
+    }
+    .glass-pill svg { width: 18px; height: 18px; stroke: #9a9a9a; fill: none; stroke-width: 1.5; }
+
+    /* ── Glassmorphic cards ── */
+    .glass-card {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(192,192,192,0.1);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 40px 32px;
+      text-align: center;
+      transition: box-shadow 0.4s ease, transform 0.1s ease;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    .glass-card:hover {
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(255,255,255,0.04);
+    }
+    .glass-card .card-icon {
+      width: 48px; height: 48px;
+      margin: 0 auto 20px;
+      stroke: #9a9a9a;
+      fill: none;
+      stroke-width: 1.5;
+    }
+    .glass-card h3 {
+      font-size: 20px;
+      color: #e8e8e8;
+      margin-bottom: 10px;
+      text-shadow: 0 1px 0 #b8b8b8, 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .glass-card p { font-size: 14px; color: #a8a8a8; line-height: 1.6; margin-bottom: 24px; }
+    .glass-card .cta-btn { padding: 10px 28px; font-size: 13px; }
+
+    /* ── Scroll reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.15s; }
+    .reveal-delay-2 { transition-delay: 0.3s; }
+    .reveal-delay-3 { transition-delay: 0.45s; }
+
+    /* ── Hero entrance ── */
+    .hero-enter { animation: heroFadeRise 1.2s cubic-bezier(0.4,0,0.2,1) both; }
+    .hero-enter-delay { animation: heroFadeRise 1.2s cubic-bezier(0.4,0,0.2,1) 0.2s both; }
+    .hero-enter-delay-2 { animation: heroFadeRise 1.2s cubic-bezier(0.4,0,0.2,1) 0.4s both; }
+    .hero-enter-delay-3 { animation: heroFadeRise 1.2s cubic-bezier(0.4,0,0.2,1) 0.6s both; }
+    @keyframes heroFadeRise {
+      from { opacity: 0; transform: translateY(50px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid rgba(192,192,192,0.06);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .cards-grid { flex-direction: column !important; }
+      .glass-card { width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js Canvas -->
+  <canvas id="three-canvas"></canvas>
+
+  <!-- Content -->
+  <div class="content-layer">
+
+    <!-- ════════════════════════════════════════════
+         SECTION 1 — HERO
+         ════════════════════════════════════════════ -->
+    <section id="hero" class="min-h-screen flex items-center justify-center px-6">
+      <div class="text-center max-w-3xl mx-auto">
+        <p class="eyebrow hero-enter">PERPLEXITY</p>
+        <h1 class="heading-3d text-5xl md:text-7xl font-bold leading-tight hero-enter-delay">
+          One assistant.<br/>Every answer.
+        </h1>
+        <p class="mt-6 text-base md:text-lg leading-relaxed hero-enter-delay-2" style="color:#a8a8a8; max-width:540px; margin-left:auto; margin-right:auto;">
+          Real-time weather, live web search, email, forex, and reminders&nbsp;— all in one conversation.
+        </p>
+        <div class="mt-10 hero-enter-delay-3">
+          <a href="#get-started" class="cta-btn">Get Started</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         SECTION 2 — ABOUT
+         ════════════════════════════════════════════ -->
+    <section id="about" class="py-28 md:py-36 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="eyebrow reveal">PERPLEXITY</p>
+        <h2 class="heading-3d text-3xl md:text-5xl font-bold reveal">What it actually does</h2>
+        <p class="mt-8 text-base leading-[1.7] reveal" style="color:#a8a8a8; max-width:650px; margin:32px auto 0;">
+          Perplexity isn't just another chatbot — it's the one tab you keep open all&nbsp;day.
+          Ask it what the weather's doing tomorrow and it'll actually check, not guess.
+          Need to know something happening right now? It searches the live web and brings back real answers, not stale training data.
+          Drafting an email at 11&nbsp;PM because you forgot? It'll write it, and send it, so you don't have to switch tabs.
+          Wondering what the dollar's doing against the rupee today? It's got that too.
+          Forgot to set a reminder for your meeting? Just tell it, and it remembers so you don't have to.
+        </p>
+
+        <!-- Feature pills -->
+        <div class="mt-12 flex flex-wrap justify-center gap-3 reveal">
+          <!-- Weather -->
+          <span class="glass-pill">
+            <svg viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71"/><circle cx="12" cy="12" r="4"/></svg>
+            Weather
+          </span>
+          <!-- Web Search -->
+          <span class="glass-pill">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>
+            Web Search
+          </span>
+          <!-- Email -->
+          <span class="glass-pill">
+            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
+            Email
+          </span>
+          <!-- Forex -->
+          <span class="glass-pill">
+            <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Forex
+          </span>
+          <!-- Reminders -->
+          <span class="glass-pill">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+            Reminders
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         SECTION 3 — GET STARTED
+         ════════════════════════════════════════════ -->
+    <section id="get-started" class="py-28 md:py-36 px-6">
+      <div class="max-w-5xl mx-auto text-center">
+        <p class="eyebrow reveal">GET STARTED</p>
+        <h2 class="heading-3d text-3xl md:text-5xl font-bold mb-14 reveal">Pick up where you left off</h2>
+
+        <div class="cards-grid flex flex-col md:flex-row gap-6 justify-center">
+
+          <!-- Card 1 — Login -->
+          <div class="glass-card flex-1 reveal reveal-delay-1" onmousemove="tiltCard(event, this)" onmouseleave="resetCard(this)">
+            <svg class="card-icon" viewBox="0 0 24 24">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            <h3>Login</h3>
+            <p>Already have an account?<br/>Welcome back.</p>
+            <a href="#" class="cta-btn">Sign In</a>
+          </div>
+
+          <!-- Card 2 — Register -->
+          <div class="glass-card flex-1 reveal reveal-delay-2" onmousemove="tiltCard(event, this)" onmouseleave="resetCard(this)">
+            <svg class="card-icon" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <line x1="20" y1="8" x2="20" y2="14"/>
+              <line x1="23" y1="11" x2="17" y2="11"/>
+            </svg>
+            <h3>Register</h3>
+            <p>New here? Create your account<br/>in seconds.</p>
+            <a href="#" class="cta-btn">Create Account</a>
+          </div>
+
+          <!-- Card 3 — Verify Email -->
+          <div class="glass-card flex-1 reveal reveal-delay-3" onmousemove="tiltCard(event, this)" onmouseleave="resetCard(this)">
+            <svg class="card-icon" viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <h3>Verify Email</h3>
+            <p>Confirm your email to unlock<br/>full access.</p>
+            <a href="#" class="cta-btn">Verify Now</a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         FOOTER
+         ════════════════════════════════════════════ -->
+    <footer class="py-12 text-center">
+      <p class="text-sm font-semibold tracking-widest" style="color:#6b6b6b;">PERPLEXITY</p>
+      <p class="mt-2" style="color:#6b6b6b; font-size:12px;">&copy; 2026 Perplexity. All rights reserved.</p>
+    </footer>
+
+  </div><!-- /content-layer -->
+
+
+  <!-- ═══════════════════════════════════════════════
+       SCRIPTS
+       ═══════════════════════════════════════════════ -->
+  <script>
+    // ── Three.js Animated Background ──────────────────────────
+    (function () {
+      const canvas = document.getElementById('three-canvas');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 30;
+
+      // Wireframe material
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x3a3a3a,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.25,
+      });
+
+      const wireMat2 = new THREE.MeshBasicMaterial({
+        color: 0x505050,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.18,
+      });
+
+      // Geometries
+      const shapes = [];
+
+      function addShape(geo, mat, x, y, z, scale) {
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        mesh.scale.setScalar(scale);
+        mesh.userData = {
+          baseX: x, baseY: y,
+          rotSpeedX: (Math.random() - 0.5) * 0.004,
+          rotSpeedY: (Math.random() - 0.5) * 0.004,
+          rotSpeedZ: (Math.random() - 0.5) * 0.002,
+          floatSpeed: 0.3 + Math.random() * 0.4,
+          floatAmp: 0.4 + Math.random() * 0.6,
+          phase: Math.random() * Math.PI * 2,
+        };
+        scene.add(mesh);
+        shapes.push(mesh);
+      }
+
+      // Sphere
+      addShape(new THREE.SphereGeometry(3, 16, 16), wireMat, -14, 6, -5, 1);
+      addShape(new THREE.SphereGeometry(2, 12, 12), wireMat2, 16, -4, -8, 1);
+
+      // Torus
+      addShape(new THREE.TorusGeometry(3, 1, 12, 40), wireMat, 12, 8, -10, 1);
+      addShape(new THREE.TorusGeometry(2, 0.7, 10, 30), wireMat2, -10, -8, -6, 1);
+
+      // Icosahedron
+      addShape(new THREE.IcosahedronGeometry(3, 0), wireMat, 0, -10, -12, 1);
+      addShape(new THREE.IcosahedronGeometry(2.5, 0), wireMat2, -18, 0, -14, 1);
+
+      // Octahedron
+      addShape(new THREE.OctahedronGeometry(2.5, 0), wireMat, 18, -8, -10, 1);
+      addShape(new THREE.OctahedronGeometry(2, 0), wireMat2, -6, 12, -8, 1);
+
+      // Dodecahedron
+      addShape(new THREE.DodecahedronGeometry(2, 0), wireMat, 8, -14, -6, 1);
+
+      // Mouse parallax
+      let mouseX = 0, mouseY = 0;
+      document.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+        mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+      });
+
+      // Resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // Animate
+      const clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const t = clock.getElapsedTime();
+
+        shapes.forEach((m) => {
+          const d = m.userData;
+          m.rotation.x += d.rotSpeedX;
+          m.rotation.y += d.rotSpeedY;
+          m.rotation.z += d.rotSpeedZ;
+          m.position.y = d.baseY + Math.sin(t * d.floatSpeed + d.phase) * d.floatAmp;
+        });
+
+        // Subtle parallax
+        camera.position.x += (mouseX * 2 - camera.position.x) * 0.02;
+        camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
+        camera.lookAt(scene.position);
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+
+
+    // ── Scroll Reveal (IntersectionObserver) ─────────────────
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    revealEls.forEach((el) => observer.observe(el));
+
+
+    // ── 3D Card Tilt ─────────────────────────────────────────
+    function tiltCard(e, card) {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      const rotateX = ((y - centerY) / centerY) * -8;   // max ±8 deg
+      const rotateY = ((x - centerX) / centerX) * 8;
+
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.03,1.03,1.03)`;
+    }
+
+    function resetCard(card) {
+      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) scale3d(1,1,1)';
+    }
+  </script>
+
+</body>
+</html>

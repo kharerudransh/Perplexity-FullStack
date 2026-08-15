@@ -1,0 +1,17 @@
+User types message
+      ↓ (socket.emit)
+Backend socket listener
+      ↓
+LangChain Agent (Gemini model)
+      ↓
+Agent decides: tool chahiye?
+      ↓ (haan)              ↓ (nahi)
+Tool execute hota hai    Seedha jawab generate karta hai
+      ↓
+Tool result wapas agent ko
+      ↓
+Agent natural language mein convert karta hai
+      ↓ (socket.emit)
+Frontend receiveMessage listener
+      ↓
+Redux state update, UI re-render
