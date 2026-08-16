@@ -110,10 +110,7 @@ export default function Login() {
     }
   };
 
-  if(user && !loading){
-    return <Navigate to="/dashboard" replace />
-  }
-  
+
   return (
     <>
       {loading && <Loader message="Signing in..." />}
@@ -142,6 +139,7 @@ export default function Login() {
             <div className="text-center mb-10">
               <motion.p
                 className="eyebrow"
+                
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
@@ -151,6 +149,7 @@ export default function Login() {
 
               <motion.h1
                 className="heading-3d text-3xl md:text-4xl font-bold mt-3"
+                style={{ fontFamily: "'Inter', sans-serif", color: '#e8e8e8', letterSpacing: '-0.01em' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}

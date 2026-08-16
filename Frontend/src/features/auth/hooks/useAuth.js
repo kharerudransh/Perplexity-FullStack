@@ -1,6 +1,6 @@
 import{useDispatch,useSelector} from "react-redux";
 import { setUser,setLoading,setError } from "../auth.slice.js";
-import { register,login,getMe,resendVerificationEmail } from "../service/auth.api.js";
+import { register,login,getMe,resendVerificationEmail,logout } from "../service/auth.api.js";
 
 export function useAuth(){
     const dispatch=useDispatch();
@@ -12,6 +12,7 @@ export function useAuth(){
         }
         catch(err){
             dispatch(setError(err.response? err.response.data: err.message))
+            throw err
         }
         finally{
             dispatch(setLoading(false));
@@ -60,12 +61,27 @@ export function useAuth(){
         }
     }
 
+    async function handleResendVerificationEmail({email,password}){
+        dispatch(setLoading(true));
+        try{
+            const data=await resendVerificationEmail({email,password});
+            return data;
+        }
+        catch(err){
+            dispatch(setError(err.response? err.response.data: err.message));
+            throw err;
+        }
+        finally{
+            dispatch(setLoading(false));
+        }
+    }
+
     return{
         handleRegister,
         handleLogin,
         handleGetMe,
         handleLogout,
-        
+        handleResendVerificationEmail,
     }
 
 }

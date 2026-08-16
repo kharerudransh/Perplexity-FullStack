@@ -1,10 +1,14 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, useInView } from 'motion/react';
 import { Link } from 'react-router';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Cursor } from '@/components/LandingPage/core/cursor';
 import FloatingShapes from '@/components/LandingPage/three/FloatingShapes';
 import Loader from '@/app/components/Loader';
+import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router';
+import toast from 'react-hot-toast';
+
 
 /* ── Inline SVG icons ── */
 const UserIcon = () => (
@@ -120,9 +124,20 @@ export default function Register() {
   const formRef = useRef(null);
   const isInView = useInView(formRef, { once: true });
 
-  const handleSubmit = (e) => {
+  const dispatch=useDispatch();
+  const navigate=useNavigate();
+  const {handleRegister}=useAuth();
+
+
+  const  handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ name, dob, username, email, password });
+    try{
+      await handleRegister({name,dateOfBirth:dob,userName:username,email,password})
+      navigate("/verifying");
+    }
+    catch(error){
+      toast.error(error.response?.data?.message || "Registration failed")
+    }
   };
 
   return (

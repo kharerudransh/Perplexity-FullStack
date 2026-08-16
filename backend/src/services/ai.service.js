@@ -2,6 +2,17 @@ import dotenv from "dotenv";
 dotenv.config();
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage ,SystemMessage,AIMessage} from "langchain";
+import * as z from "zod"
+import { tool , createAgent } from "langchain" 
+import {sendEmail} from "./mail.service.js"
+import {getWeatherByCity} from "./weatherService.js"
+import {searchTool} from "./search.service.js"  
+
+
+
+const today = new Date().toLocaleDateString("en-IN", { 
+    year: 'numeric', month: 'long', day: 'numeric' 
+});
 
 
 const model = new ChatGoogleGenerativeAI({
@@ -15,30 +26,61 @@ const titleModel = new ChatGoogleGenerativeAI({
   temperature: 0.3,  // titles ke liye kam creativity chahiye, consistent output
 });
 
-export async function generateResponse(messages,userName){
-    const response = await model.invoke(messages.map(msg=>{
-      SystemMessage(`
-        You are a helpful assistant. You are talking to user ${userName} 
-        keep your answer short and precise.
-        Your answer should make sense and should be in easy language so that user can userstand it.
-        Your task is to understand the user's query and provide the best possible response.
-        Dont answer to any question which has terrorism , racism , discrimination , abuse or hate speech.
-        Answer the question in same language as the user's question.
-        Use the username sometimes in convo to make the answer more personal
-        Your response should be friendly.
-        Answer the question after analyzing it and make it more better
-        If needed support your answer with example.
-        If user ask you to generate code then provide the code in proper format.
-        Always ask follow up questions regarding the users query so that you can understand it better.
-        `);
-        if(msg.role === "user"){
+
+//tool setup email
+const emailTool=tool(
+  //1. function used there
+  sendEmail,
+  //2. name and description of tool
+  {
+    name:"emailTool",
+    description:"This is a Email Sender tool which is used to send the email where user asked to send ",
+    //3. Input jo tool expect karega
+    schema:z.object({
+      to:z.string().email("Invalid email address").describe("Recipient's Email Address"),
+      subject:z.string().describe("Email Subject"),
+      html:z.string().describe("HTML code of email"),
+      text:z.string().describe("Text version of email"),
+    }),
+  }
+)
+
+//Weather tool 
+const weatherTool=tool(
+  //1. function used there
+    getWeatherByCity,
+    {
+      //2. name and description of tool
+      name:"getWeatherByCity",
+      description:"This is a Weather Tool which is used to get the weather of any city",
+      //3. Input jo tool expect karega
+      schema:z.object({
+        cityName:z.string().describe("City Name"),
+      }),
+    }
+  )
+
+const agent=createAgent({
+    model,
+    tools:[emailTool,weatherTool,searchTool],
+    systemPrompt: `You are a helpful assistant. Today's date is ${today}.For ANY question about current events, live scores, news, or time-sensitive information, you MUST use the search tool first — never rely on your training data or memory for such queries.
+    CRITICAL: Only state facts that are explicitly present in the search results. Do NOT fill in missing details (like specific scores, stats, or numbers) with your own estimates or training knowledge. If the search results don't include a specific detail, say "I don't have that specific detail from the search results" instead of guessing.`
+})
+export async function generateResponse(messages, userName) {
+    const formattedMessages = messages.map(msg => {
+        if (msg.role === "user") {
             return new HumanMessage(msg.content);
         }
-        else{
+        else {
             return new AIMessage(msg.content);
         }
-    }));//convert msgs into array of HumanMessage and AIMessage objects
-    return response.text;
+    });
+
+    const response = await agent.invoke({
+        messages: formattedMessages   // ← object-shape mein wrap kiya
+    });
+
+    return response.messages[response.messages.length - 1].content;
 }
 
 export async function generateChatTitle(message){
