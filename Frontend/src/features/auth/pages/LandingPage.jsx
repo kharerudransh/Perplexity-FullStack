@@ -3,6 +3,7 @@ import { motion, useInView } from 'motion/react';
 import { Link } from 'react-router';
 import { Cursor } from '@/components/LandingPage/core/cursor';
 import FloatingShapes from '@/components/LandingPage/three/FloatingShapes';
+import { CgLivePhoto } from 'react-icons/cg';
 
 /* ═══════════════════════════════════════════════════════════
    SVG ICONS (inline, no external icon libraries)
@@ -34,11 +35,6 @@ const ForexIcon = () => (
   </svg>
 );
 
-const ReminderIcon = () => (
-  <svg viewBox="0 0 24 24">
-    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
-  </svg>
-);
 
 const LoginIcon = () => (
   <svg className="card-icon" viewBox="0 0 24 24">
@@ -72,7 +68,7 @@ const features = [
   { icon: SearchIcon, label: 'Web Search' },
   { icon: EmailIcon, label: 'Email' },
   { icon: ForexIcon, label: 'Forex' },
-  { icon: ReminderIcon, label: 'Reminders' },
+  { icon: () => <CgLivePhoto size={14} />, label: 'Live Train & Flight Status' },
 ];
 
 /* ═══════════════════════════════════════════════════════════
@@ -254,7 +250,7 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
             >
-              Real-time weather, live web search, email, forex, and reminders&nbsp;— all in one conversation.
+              Real-time weather, live web search, email, forex, and live train &amp; flight status&nbsp;— all in one conversation.
             </motion.p>
 
             <motion.div
@@ -291,7 +287,7 @@ export default function LandingPage() {
                 Need to know something happening right now? It searches the live web and brings back real answers, not stale training data.
                 Drafting an email at 11&nbsp;PM because you forgot? It'll write it, and send it, so you don't have to switch tabs.
                 Wondering what the dollar's doing against the rupee today? It's got that too.
-                Forgot to set a reminder for your meeting? Just tell it, and it remembers so you don't have to.
+                Need to know if your train is running late or your flight is delayed? Just ask — it tracks live train and flight status in real time.
               </p>
             </Reveal>
 

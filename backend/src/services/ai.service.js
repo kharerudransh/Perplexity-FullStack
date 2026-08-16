@@ -7,6 +7,8 @@ import { tool , createAgent } from "langchain"
 import {sendEmail} from "./mail.service.js"
 import {getWeatherByCity} from "./weatherService.js"
 import {searchTool} from "./search.service.js"  
+import {getLiveTrainStatus} from "./Train.service.js"
+import {getLiveFlightStatus} from "./Flight.service.js"
 
 
 
@@ -60,12 +62,43 @@ const weatherTool=tool(
     }
   )
 
-const agent=createAgent({
+  // Train tracking tool
+const trainTool = tool(
+    getLiveTrainStatus,
+    {
+        name: "getLiveTrainStatus",
+        description: "This is a Train Tracking tool used to get live status, delay, and current position of an Indian train using its train number",
+        schema: z.object({
+            trainNumber: z.string().describe("Indian Railways train number, e.g. 12951"),
+        }),
+    }
+);
+
+// Flight tracking tool
+const flightTool = tool(
+    getLiveFlightStatus,
+    {
+        name: "getLiveFlightStatus",
+        description: "This is a Flight Tracking tool used to get live status, delay, and schedule of a flight using its flight IATA code",
+        schema: z.object({
+            flightCode: z.string().describe("Flight IATA code, e.g. AI101"),
+        }),
+    }
+);
+
+const agent = createAgent({
     model,
-    tools:[emailTool,weatherTool,searchTool],
-    systemPrompt: `You are a helpful assistant. Today's date is ${today}.For ANY question about current events, live scores, news, or time-sensitive information, you MUST use the search tool first — never rely on your training data or memory for such queries.
-    CRITICAL: Only state facts that are explicitly present in the search results. Do NOT fill in missing details (like specific scores, stats, or numbers) with your own estimates or training knowledge. If the search results don't include a specific detail, say "I don't have that specific detail from the search results" instead of guessing.`
-})
+    tools: [emailTool, weatherTool, searchTool, trainTool, flightTool],
+    systemPrompt: `You are a helpful assistant. Today's date is ${today}.
+
+    TOOL PRIORITY RULES (follow strictly):
+    - For live train status, delay, or current position of an Indian train → ALWAYS use getLiveTrainStatus tool FIRST. Never use search tool for train tracking queries.
+    - For live flight status or delay → ALWAYS use getLiveFlightStatus tool FIRST. Never use search tool for flight tracking queries.
+    - For general current events, news, or live scores (non-train, non-flight) → use search tool.
+    - Only fall back to search tool for trains/flights if the tracking tool fails or returns an error.
+
+    CRITICAL: Only state facts that are explicitly present in tool results. Do NOT fill in missing details with your own estimates or training knowledge.`
+});
 export async function generateResponse(messages, userName) {
     const formattedMessages = messages.map(msg => {
         if (msg.role === "user") {
