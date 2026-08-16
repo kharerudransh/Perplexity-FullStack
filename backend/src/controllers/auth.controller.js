@@ -205,11 +205,12 @@ export async function verifyEmailController(req,res){
         })
 
         // token ko cookies me daaldo
-        res.cookie("token",token,{
-            maxAge:5*24*60*60*1000,
-            httpOnly:true,
-        })
-
+       res.cookie("token", token, {
+            maxAge: 5 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+        });
         res.status(200).json({
             success: true,
             message: "Login successfully",
