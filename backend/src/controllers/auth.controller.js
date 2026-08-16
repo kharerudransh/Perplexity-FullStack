@@ -39,7 +39,7 @@ export async function registerController(req,res){
             id:user._id,
             email:user.email,
         },process.env.JWT_SECRET,{expiresIn:"1d"});
-
+        const verifyLink = `${process.env.BACKEND_URL}/api/auth/verify-email?token=${verifiedToken}`;
 
         await sendEmail({
         to: email,
@@ -57,7 +57,7 @@ export async function registerController(req,res){
                     ${username} is all set — just one step left before you're in.
                 </p>
                 
-                <a href="http://localhost:8000/api/auth/verify-email?token=${verifiedToken}"
+                <a href="${verifyLink}""
                 style="background-color: #e8e8e8 !important; text-decoration: none !important; padding: 13px 0; border-radius: 6px; display: block; text-align: center;">
                     <span style="color: #0a0a0a !important; font-size: 14px; font-weight: 600; letter-spacing: 0.3px;">Verify email →</span>
                 </a>
@@ -108,6 +108,9 @@ export async function verifyEmailController(req,res){
         }
         user.verified=true;
         await user.save();
+
+        const loginLink = `${process.env.FRONTEND_URL}/login`;
+
         await sendEmail({
             to: decode.email,
             subject: "Email verified — Perplexity",
@@ -124,13 +127,13 @@ export async function verifyEmailController(req,res){
                         Thanks for verifying your email. You can now log in to your Perplexity account.
                     </p>
                     
-                    <a href="http://localhost:8000/api/auth/login"
+                    <a href="${loginLink}"
                     style="background-color: #e8e8e8 !important; text-decoration: none !important; padding: 13px 0; border-radius: 6px; display: block; text-align: center;">
                         <span style="color: #0a0a0a !important; font-size: 14px; font-weight: 600; letter-spacing: 0.3px;">Log in →</span>
                     </a>
                     
                     <p style="color: #55555a; font-size: 12px; margin: 20px 0 0; line-height: 1.6;">
-                        If you didn’t sign up, you can safely ignore this email.
+                        If you didn't sign up, you can safely ignore this email.
                     </p>
                 </div>
                 
@@ -141,7 +144,7 @@ export async function verifyEmailController(req,res){
                 </div>
             </div>
             `,
-            text: `Email verified! You can now log in to your Perplexity account: http://localhost:8000/api/auth/login`
+            text: `Email verified! You can now log in to your Perplexity account: ${loginLink}`
         })
         res.status(200).json({message:"Email verified successfully",success:true});
     }
@@ -306,6 +309,7 @@ export async function resendVerificationEmailController(req,res){
             id:user._id,
             email:user.email
         },process.env.JWT_SECRET,{expiresIn:"1h"})
+        const verifyLink = `${process.env.BACKEND_URL}/api/auth/verify-email?token=${verifiedToken}`;
         await sendEmail({
         to: email,
         subject: "Verify your email — Perplexity",
@@ -322,7 +326,7 @@ export async function resendVerificationEmailController(req,res){
                     ${user.username} is all set — just one step left before you're in.
                 </p>
                 
-                <a href="http://localhost:8000/api/auth/verify-email?token=${verificationToken}"
+                <a href="${verifyLink}""
                 style="background-color: #e8e8e8 !important; text-decoration: none !important; padding: 13px 0; border-radius: 6px; display: block; text-align: center;">
                     <span style="color: #0a0a0a !important; font-size: 14px; font-weight: 600; letter-spacing: 0.3px;">Verify email →</span>
                 </a>
