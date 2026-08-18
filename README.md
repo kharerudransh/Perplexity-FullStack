@@ -6,7 +6,7 @@ Perplexity-FullStack is a full-stack AI application inspired by modern AI search
 
 The project was built to understand how an AI application works across the **frontend, backend, database, authentication, AI integration, and third-party APIs** rather than treating AI as just a simple chatbot.
 
-**Live Demo:** https://perplexity-full-stack.vercel.app/
+**Live Demo:** [https://perplexity-full-stack.vercel.app/](https://perplexity-full-stack-ecru.vercel.app)
 **GitHub:** https://github.com/kharerudransh/Perplexity-FullStack
 
 ---
@@ -170,6 +170,3 @@ Building this project gave me practical experience with:
 
 ---
 
-
-
-**Live Demo:** https://perplexity-full-stack.vercel.app/
