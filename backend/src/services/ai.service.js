@@ -1,27 +1,26 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { HumanMessage ,SystemMessage,AIMessage} from "langchain";
+import { HumanMessage, SystemMessage, AIMessage } from "langchain";
 import * as z from "zod"
-import { tool , createAgent } from "langchain" 
-import {sendEmail} from "./mail.service.js"
-import {getWeatherByCity} from "./weatherService.js"
-import {searchTool} from "./search.service.js"  
-import {getLiveTrainStatus} from "./Train.service.js"
-import {getLiveFlightStatus} from "./Flight.service.js"
+import { tool, createAgent } from "langchain"
+import { sendEmail } from "./mail.service.js"
+import { getWeatherByCity } from "./weatherService.js"
+import { searchTool } from "./search.service.js"
+import { getLiveTrainStatus } from "./Train.service.js"
+import { getLiveFlightStatus } from "./Flight.service.js"
 
 
 
-const today = new Date().toLocaleDateString("en-IN", { 
-    year: 'numeric', month: 'long', day: 'numeric' 
+const today = new Date().toLocaleDateString("en-IN", {
+  year: 'numeric', month: 'long', day: 'numeric'
 });
-
 
 const model = new ChatGoogleGenerativeAI({
   model: "gemini-3.5-flash-lite",
   apiKey: process.env.GEMINI_API_KEY,
   temperature: 0.7
-}); 
+});
 const titleModel = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   model: "gemini-3.1-flash-lite",   // ya "gemini-flash-lite-latest" agar available
@@ -30,102 +29,106 @@ const titleModel = new ChatGoogleGenerativeAI({
 
 
 //tool setup email
-const emailTool=tool(
+const emailTool = tool(
   //1. function used there
   sendEmail,
   //2. name and description of tool
   {
-    name:"emailTool",
-    description:"This is a Email Sender tool which is used to send the email where user asked to send ",
+    name: "emailTool",
+    description: "This is a Email Sender tool which is used to send the email where user asked to send ",
     //3. Input jo tool expect karega
-    schema:z.object({
-      to:z.string().email("Invalid email address").describe("Recipient's Email Address"),
-      subject:z.string().describe("Email Subject"),
-      html:z.string().describe("HTML code of email"),
-      text:z.string().describe("Text version of email"),
+    schema: z.object({
+      to: z.string().email("Invalid email address").describe("Recipient's Email Address"),
+      subject: z.string().describe("Email Subject"),
+      html: z.string().describe("HTML code of email"),
+      text: z.string().describe("Text version of email"),
     }),
   }
 )
 
 //Weather tool 
-const weatherTool=tool(
+const weatherTool = tool(
   //1. function used there
-    getWeatherByCity,
-    {
-      //2. name and description of tool
-      name:"getWeatherByCity",
-      description:"This is a Weather Tool which is used to get the weather of any city",
-      //3. Input jo tool expect karega
-      schema:z.object({
-        cityName:z.string().describe("City Name"),
-      }),
-    }
-  )
+  getWeatherByCity,
+  {
+    //2. name and description of tool
+    name: "getWeatherByCity",
+    description: "This is a Weather Tool which is used to get the weather of any city",
+    //3. Input jo tool expect karega
+    schema: z.object({
+      cityName: z.string().describe("City Name"),
+    }),
+  }
+)
 
-  // Train tracking tool
+// Train tracking tool
 const trainTool = tool(
-    getLiveTrainStatus,
-    {
-        name: "getLiveTrainStatus",
-        description: "This is a Train Tracking tool used to get live status, delay, and current position of an Indian train using its train number",
-        schema: z.object({
-            trainNumber: z.string().describe("Indian Railways train number, e.g. 12951"),
-        }),
-    }
+  getLiveTrainStatus,
+  {
+    name: "getLiveTrainStatus",
+    description: "This is a Train Tracking tool used to get live status, delay, and current position of an Indian train using its train number",
+    schema: z.object({
+      trainNumber: z.string().describe("Indian Railways train number, e.g. 12951"),
+    }),
+  }
 );
 
 // Flight tracking tool
 const flightTool = tool(
-    getLiveFlightStatus,
-    {
-        name: "getLiveFlightStatus",
-        description: "This is a Flight Tracking tool used to get live status, delay, and schedule of a flight using its flight IATA code",
-        schema: z.object({
-            flightCode: z.string().describe("Flight IATA code, e.g. AI101"),
-        }),
-    }
+  getLiveFlightStatus,
+  {
+    name: "getLiveFlightStatus",
+    description: "This is a Flight Tracking tool used to get live status, delay, and schedule of a flight using its flight IATA code",
+    schema: z.object({
+      flightCode: z.string().describe("Flight IATA code, e.g. AI101"),
+    }),
+  }
 );
 
-const agent = createAgent({
+
+export async function generateResponse(messages, userName) {
+  const dynamicAgent = createAgent({
     model,
     tools: [emailTool, weatherTool, searchTool, trainTool, flightTool],
-    systemPrompt: `You are a helpful assistant. Today's date is ${today}.
+    systemPrompt: `You are a helpful assistant. Today's date is ${today}. You are talking to user ${userName}.
+        TOOL PRIORITY RULES (follow strictly):
+        - For live train status, delay, or current position of an Indian train → ALWAYS use getLiveTrainStatus tool FIRST. Never use search tool for train tracking queries.
+        - For live flight status or delay → ALWAYS use getLiveFlightStatus tool FIRST. Never use search tool for flight tracking queries.
+        - For general current events, news, or live scores (non-train, non-flight) → use search tool.
+        - Only fall back to search tool for trains/flights if the tracking tool fails or returns an error.
+        Keep your answer short and precise, in easy language so the user can understand it.
+        Don't answer questions involving terrorism, racism, discrimination, abuse or hate speech.
+        Answer in the same language as the user's question. Use the username sometimes to make the conversation personal. Be friendly.
+        Support your answer with examples when helpful. If the user asks for code, format it properly.
+        Ask follow-up questions when it helps you understand the query better.
+        For ANY question about current events, live scores, news, or time-sensitive information, you MUST use the search tool first — never rely on your training data or memory.
+        CRITICAL: Only state facts explicitly present in the search results. Do NOT fill in missing details with your own estimates. If a detail is missing, say so instead of guessing.`
+  });
 
-    TOOL PRIORITY RULES (follow strictly):
-    - For live train status, delay, or current position of an Indian train → ALWAYS use getLiveTrainStatus tool FIRST. Never use search tool for train tracking queries.
-    - For live flight status or delay → ALWAYS use getLiveFlightStatus tool FIRST. Never use search tool for flight tracking queries.
-    - For general current events, news, or live scores (non-train, non-flight) → use search tool.
-    - Only fall back to search tool for trains/flights if the tracking tool fails or returns an error.
+  const formattedMessages = messages.map(msg => {
+    if (msg.role === "user") {
+      return new HumanMessage(msg.content);
+    }
+    else {
+      return new AIMessage(msg.content);
+    }
+  });
 
-    CRITICAL: Only state facts that are explicitly present in tool results. Do NOT fill in missing details with your own estimates or training knowledge.`
-});
-export async function generateResponse(messages, userName) {
-    const formattedMessages = messages.map(msg => {
-        if (msg.role === "user") {
-            return new HumanMessage(msg.content);
-        }
-        else {
-            return new AIMessage(msg.content);
-        }
-    });
+  const response = await dynamicAgent.invoke({
+    messages: formattedMessages
+  });
 
-    const response = await agent.invoke({
-        messages: formattedMessages   // ← object-shape mein wrap kiya
-    });
-
-    return response.messages[response.messages.length - 1].content;
+  return response.messages[response.messages.length - 1].content;
 }
 
-export async function generateChatTitle(message){
-    const response = await titleModel.invoke([
-      new SystemMessage("You are a Title Generator which can generate a title for a conversation between user and Ai agent. give a title to this conversation so that user can understand the topic of the chat and keep it short:"),
-      new HumanMessage(`
+
+export async function generateChatTitle(message) {
+  const response = await titleModel.invoke([
+    new SystemMessage("You are a Title Generator which can generate a title for a conversation between user and Ai agent. give a title to this conversation so that user can understand the topic of the chat and keep it short:"),
+    new HumanMessage(`
         Generate  the title for the chat around 2-3 words so that user can remeber about the conversation by reading title only.
         ${message}
         
         `)]);
-    return response.text;
+  return response.text;
 }
-
-    
-
