@@ -11,6 +11,7 @@ const transporter = nodemailer.createTransport({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
   },
+  family:4
 });
 // Verify the connection configuration
 transporter.verify((error, success) => {
