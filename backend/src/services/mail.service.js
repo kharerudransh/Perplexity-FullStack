@@ -1,9 +1,11 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
-//this transporter works between http and smtp
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     type: 'OAuth2',
     user: process.env.GOOGLE_USER,
@@ -11,9 +13,10 @@ const transporter = nodemailer.createTransport({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
   },
-  family:4
+  family: 4,
+  connectionTimeout: 10000,
 });
-// Verify the connection configuration
+
 transporter.verify((error, success) => {
   if (error) {
     console.error('Error connecting to email server:', error);
@@ -21,7 +24,6 @@ transporter.verify((error, success) => {
     console.log('Email server is ready to send messages');
   }
 });
-
 
 export async function sendEmail({to,subject,html,text}){
     const mailOptions = {
