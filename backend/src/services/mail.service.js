@@ -1,38 +1,37 @@
-import nodemailer from "nodemailer";
+import { google } from "googleapis";
 import dotenv from "dotenv";
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    type: 'OAuth2',
-    user: process.env.GOOGLE_USER,
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-  },
-  family: 4,
-  connectionTimeout: 10000,
-});
+const oAuth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET
+);
+oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('Error connecting to email server:', error);
-  } else {
-    console.log('Email server is ready to send messages');
-  }
-});
+const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-export async function sendEmail({to,subject,html,text}){
-    const mailOptions = {
-        from:process.env.GOOGLE_USER,
-        to,
-        subject,
-        html,
-        text,
-    }
-    const details=await transporter.sendMail(mailOptions);
-    console.log("Email sent",details);
+function makeRawEmail({ to, subject, html }) {
+  const message = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `Content-Type: text/html; charset=utf-8`,
+    ``,
+    html,
+  ].join("\n");
+
+  return Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+export async function sendEmail({ to, subject, html, text }) {
+  const raw = makeRawEmail({ to, subject, html: html || text });
+  const result = await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
+  });
+  console.log("Email sent", result.data);
+  return result.data;
 }
