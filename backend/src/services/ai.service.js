@@ -9,7 +9,7 @@ import { getWeatherByCity } from "./weatherService.js"
 import { searchTool } from "./search.service.js"
 import { getLiveTrainStatus } from "./Train.service.js"
 import { getLiveFlightStatus } from "./Flight.service.js"
-
+import { getDirections } from "./maps.service.js";
 
 
 const today = new Date().toLocaleDateString("en-IN", {
@@ -85,11 +85,24 @@ const flightTool = tool(
   }
 );
 
+//Maps 
+const mapsTool = tool(
+    getDirections,
+    {
+        name: "getDirections",
+        description: "Get route, distance, and travel time between two locations. Use this when the user asks for directions or a route between two places (e.g. 'Delhi to Mumbai route').",
+        schema: z.object({
+            origin: z.string().describe("Starting location name, e.g. 'Delhi'"),
+            destination: z.string().describe("Destination location name, e.g. 'Mumbai'"),
+        }),
+    }
+);
+
 
 export async function generateResponse(messages, userName) {
   const dynamicAgent = createAgent({
     model,
-    tools: [emailTool, weatherTool, searchTool, trainTool, flightTool],
+    tools: [emailTool, weatherTool, searchTool, trainTool, flightTool,mapsTool],
     systemPrompt: `You are a helpful assistant. Today's date is ${today}. You are talking to user ${userName}.
         TOOL PRIORITY RULES (follow strictly):
         - For live train status, delay, or current position of an Indian train → ALWAYS use getLiveTrainStatus tool FIRST. Never use search tool for train tracking queries.
@@ -101,6 +114,7 @@ export async function generateResponse(messages, userName) {
         Answer in the same language as the user's question. Use the username sometimes to make the conversation personal. Be friendly.
         Support your answer with examples when helpful. If the user asks for code, format it properly.
         Ask follow-up questions when it helps you understand the query better.
+        If any question is related to maps use mapTool
         For ANY question about current events, live scores, news, or time-sensitive information, you MUST use the search tool first — never rely on your training data or memory.
         CRITICAL: Only state facts explicitly present in the search results. Do NOT fill in missing details with your own estimates. If a detail is missing, say so instead of guessing.`
   });

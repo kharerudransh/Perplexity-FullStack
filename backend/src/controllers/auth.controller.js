@@ -373,7 +373,7 @@ export async function logoutController(req,res){
         if(!token){
             return res.status(400).json({
                 message:"No token found",
-                success:false,
+                success:false,  
                 err:"No token found",
             })
         }

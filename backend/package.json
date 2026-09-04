@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.4.2",
     "@langchain/google-genai": "^2.2.0",
     "@langchain/tavily": "^1.2.0",
     "axios": "^1.19.0",
